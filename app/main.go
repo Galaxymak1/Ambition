@@ -7,8 +7,8 @@ import (
 )
 
 // Ensures gofmt doesn't remove the "net" and "os" imports above (feel free to remove this!)
-var _ = net.Listen
-var _ = os.Exit
+//var _ = net.Listen
+//var _ = os.Exit
 
 func main() {
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -19,10 +19,26 @@ func main() {
 		fmt.Println("Failed to bind to port 4221")
 		os.Exit(1)
 	}
+	defer l.Close()
+	for {
 
-	_, err = l.Accept()
+		conn, err := l.Accept()
+		if err != nil {
+			fmt.Println("Error accepting connection: ", err.Error())
+			os.Exit(1)
+		}
+		go handleConnection(conn)
+		//conn.Close()
+	}
+}
+
+func handleConnection(conn net.Conn) {
+	defer conn.Close()
+	fmt.Println("Accepting connection from ", conn.RemoteAddr())
+	data := []byte("HTTP/1.1 200 OK\\r\\n\\r\\n")
+	_, err := conn.Write(data)
 	if err != nil {
-		fmt.Println("Error accepting connection: ", err.Error())
+		fmt.Println("Error writing ", err.Error())
 		os.Exit(1)
 	}
 }
