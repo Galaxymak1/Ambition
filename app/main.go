@@ -35,7 +35,7 @@ func main() {
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 	fmt.Println("Accepting connection from ", conn.RemoteAddr())
-	data := []byte("HTTP/1.1 200 OK\\r\\n\\r\\n")
+	data := []byte("HTTP/1.1 200 OK\r\n\r\n")
 	_, err := conn.Write(data)
 	if err != nil {
 		fmt.Println("Error writing ", err.Error())
