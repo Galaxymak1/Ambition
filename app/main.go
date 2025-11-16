@@ -70,7 +70,7 @@ func handleRoutes(requestLine string, headers []string) string {
 	var userAgent string
 	for _, header := range headers {
 		if s.Contains(header, "User-Agent") {
-			userAgent = s.Split(header, ": ")[1]
+			userAgent = s.TrimSpace(s.Split(header, ": ")[1])
 		}
 	}
 	lenUrl := len(urlParts)
