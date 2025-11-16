@@ -68,7 +68,6 @@ func handleRequest(req string) string {
 
 func handleRoutes(urlParts []string) string {
 	lenUrl := len(urlParts)
-	fmt.Println("urlParts: ", urlParts[1])
 	if lenUrl == 0 {
 		return "HTTP/1.1 200 OK\r\n\r\n"
 	} else if urlParts[0] == "echo" && lenUrl == 2 {
