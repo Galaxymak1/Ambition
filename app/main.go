@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	s "strings"
 )
 
@@ -38,12 +40,14 @@ func handleConnection(conn net.Conn) {
 	fmt.Println("Accepting connection from ", conn.RemoteAddr(), "\n")
 	buffer := make([]byte, 1024)
 	c, err := conn.Read(buffer)
+	if err != nil {
+		fmt.Println("Error reading from connection: ", err.Error())
+		return
+	}
+
 	request := string(buffer[:c])
 	response := handleRequest(request)
 
-	if err != nil {
-		fmt.Println("Error reading from connection: ", err.Error())
-	}
 	data := []byte(response)
 	_, err = conn.Write(data)
 	if err != nil {
@@ -53,17 +57,26 @@ func handleConnection(conn net.Conn) {
 }
 func handleRequest(req string) string {
 	requestLine, _, _ := parseRequest(req)
-	passStage := s.Split(requestLine, " ")[1]
-	test := s.Split(passStage, "/")
-	test = delete_empty(test)
-	fmt.Printf("Test: %#v\n", passStage)
-	fmt.Printf("Test2: %#v\n", test)
-	fmt.Println("len", len(test))
-	if len(test) > 0 {
-		return "HTTP/1.1 404 Not Found\r\n\r\n"
-	} else {
-		return "HTTP/1.1 200 OK\r\n\r\n"
+	_, urlParts, _, err := parseRequestLine(requestLine)
+	if err != nil {
+		fmt.Println("Error parsing request line: ", err.Error())
+		return "HTTP/1.1 400 Bad Request\r\n\r\n"
 	}
+	response := handleRoutes(urlParts)
+	return response
+}
+
+func handleRoutes(urlParts []string) string {
+	lenUrl := len(urlParts)
+	fmt.Println("urlParts: ", urlParts[1])
+	if lenUrl == 0 {
+		return "HTTP/1.1 200 OK\r\n\r\n"
+	} else if urlParts[0] == "echo" && lenUrl == 2 {
+		return "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(urlParts[1])) + "\r\n\r\n" + urlParts[1]
+	} else {
+		return "HTTP/1.1 404 Not Found\r\n\r\n"
+	}
+
 }
 
 func parseRequest(req string) (string, []string, string) {
@@ -82,6 +95,15 @@ func parseRequest(req string) (string, []string, string) {
 		fmt.Printf("BODY  LINE : %#v \n", body)
 	}
 	return requestLine, headers, body
+}
+
+func parseRequestLine(requestLine string) (string, []string, string, error) {
+	parts := s.Split(requestLine, " ")
+	if len(parts) != 3 {
+		return "", []string{""}, "", errors.New("invalid request line")
+	}
+	method, urlParts, protocol := parts[0], delete_empty(s.Split(parts[1], "/")), parts[2]
+	return method, urlParts, protocol, nil
 }
 
 func delete_empty(s []string) []string {
