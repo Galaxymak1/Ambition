@@ -56,26 +56,37 @@ func handleConnection(conn net.Conn) {
 	}
 }
 func handleRequest(req string) string {
-	requestLine, _, _ := parseRequest(req)
+	requestLine, headers, _ := parseRequest(req)
+	response := handleRoutes(requestLine, headers)
+	return response
+}
+
+func handleRoutes(requestLine string, headers []string) string {
 	_, urlParts, _, err := parseRequestLine(requestLine)
 	if err != nil {
 		fmt.Println("Error parsing request line: ", err.Error())
 		return "HTTP/1.1 400 Bad Request\r\n\r\n"
 	}
-	response := handleRoutes(urlParts)
-	return response
-}
-
-func handleRoutes(urlParts []string) string {
+	var userAgent string
+	for _, header := range headers {
+		if s.Contains(header, "User-Agent") {
+			userAgent = s.Split(header, ": ")[1]
+		}
+	}
 	lenUrl := len(urlParts)
 	if lenUrl == 0 {
 		return "HTTP/1.1 200 OK\r\n\r\n"
 	} else if urlParts[0] == "echo" && lenUrl == 2 {
 		return "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(urlParts[1])) + "\r\n\r\n" + urlParts[1]
+	} else if urlParts[0] == "user-agent" {
+		if userAgent != "" {
+			println(userAgent)
+			return "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(userAgent)) + "\r\n\r\n" + userAgent
+		}
 	} else {
 		return "HTTP/1.1 404 Not Found\r\n\r\n"
 	}
-
+	return ""
 }
 
 func parseRequest(req string) (string, []string, string) {
