@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	s "strings"
 )
@@ -65,28 +66,48 @@ func handleRoutes(requestLine string, headers []string) string {
 	_, urlParts, _, err := parseRequestLine(requestLine)
 	if err != nil {
 		fmt.Println("Error parsing request line: ", err.Error())
-		return "HTTP/1.1 400 Bad Request\r\n\r\n"
+		return BAD_REQUEST + "\r\n"
 	}
-	var userAgent string
-	for _, header := range headers {
-		if s.Contains(header, "User-Agent") {
-			userAgent = s.TrimSpace(s.Split(header, ": ")[1])
-		}
-	}
+
 	lenUrl := len(urlParts)
 	if lenUrl == 0 {
-		return "HTTP/1.1 200 OK\r\n\r\n"
-	} else if urlParts[0] == "echo" && lenUrl == 2 {
-		return "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(urlParts[1])) + "\r\n\r\n" + urlParts[1]
-	} else if urlParts[0] == "user-agent" {
-		if userAgent != "" {
-			println(userAgent)
-			return "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(userAgent)) + "\r\n\r\n" + userAgent
-		}
-	} else {
-		return "HTTP/1.1 404 Not Found\r\n\r\n"
+		return OK + "\r\n"
 	}
-	return ""
+	baseRoute := urlParts[0]
+
+	switch baseRoute {
+	case "echo":
+		{
+			if len(urlParts) > 1 {
+				return OK + "Content-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(urlParts[1])) + "\r\n\r\n" + urlParts[1]
+			} else {
+				return BAD_REQUEST + "\r\n"
+			}
+		}
+	case "user-agent":
+		var userAgent string
+		for _, header := range headers {
+			if s.Contains(header, "User-Agent") {
+				userAgent = s.TrimSpace(s.Split(header, ": ")[1])
+			}
+		}
+		if userAgent != "" {
+			return OK + "Content-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(userAgent)) + "\r\n\r\n" + userAgent
+		}
+	case "files":
+		path := filepath.Join("tmp", urlParts[1])
+		file, err := os.ReadFile(path)
+		if err != nil {
+			fmt.Println("Error reading file: ", err.Error())
+			return NOT_FOUND + "\r\n"
+		}
+		return OK + "Content-Type: application/octet-stream\r\nContent-Length: " + strconv.Itoa(len(file)) + "\r\n\r\n" + string(file)
+
+	default:
+		return NOT_FOUND + "\r\n"
+
+	}
+	return NOT_FOUND + "\r\n"
 }
 
 func parseRequest(req string) (string, []string, string) {
