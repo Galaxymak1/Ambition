@@ -11,10 +11,10 @@ import (
 	s "strings"
 )
 
-var directory = flag.String("directory", "", "Directory to serve files")
+var fileDir string
 
 func main() {
-
+	setupFlags()
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
 		fmt.Println("Failed to bind to port 4221")
@@ -34,6 +34,10 @@ func main() {
 	}
 }
 
+func setupFlags() {
+	flag.StringVar(&fileDir, "directory", ".", "Directory to serve files from")
+	flag.Parse()
+}
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
@@ -94,8 +98,8 @@ func handleRoutes(requestLine string, headers []string) string {
 			return OK + "Content-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(userAgent)) + "\r\n\r\n" + userAgent
 		}
 	case "files":
-		path := filepath.Join(*directory, "/", urlParts[1])
-		println(*directory)
+		path := filepath.Join(fileDir, "/", urlParts[1])
+		println(fileDir)
 		println(path)
 		file, err := os.ReadFile(path)
 		if err != nil {
