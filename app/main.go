@@ -2,18 +2,18 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
-	"log"
 	"net"
 	"os"
-	"path/filepath"
 	"strconv"
 	s "strings"
 )
 
 // Ensures gofmt doesn't remove the "net" and "os" imports above (feel free to remove this!)
-//var _ = net.Listen
-//var _ = os.Exit
+// var _ = net.Listen
+// var _ = os.Exit
+var directory = flag.String("directory", "", "Directory to serve")
 
 func main() {
 
@@ -96,17 +96,7 @@ func handleRoutes(requestLine string, headers []string) string {
 			return OK + "Content-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(userAgent)) + "\r\n\r\n" + userAgent
 		}
 	case "files":
-		files, err := os.ReadDir("../temp")
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		fmt.Println("Files in current directory:")
-		for _, file := range files {
-			fmt.Println(file.Name())
-		}
-		path := filepath.Join("./", urlParts[1])
-		file, err := os.ReadFile(path)
+		file, err := os.ReadFile(*directory + "/" + urlParts[1])
 		if err != nil {
 			fmt.Println("Error reading file: ", err.Error())
 			return NOT_FOUND + "\r\n"
