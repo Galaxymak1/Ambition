@@ -96,7 +96,7 @@ func handleRoutes(requestLine string, headers []string) string {
 			return OK + "Content-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(userAgent)) + "\r\n\r\n" + userAgent
 		}
 	case "files":
-		files, err := os.ReadDir("./tmp")
+		files, err := os.ReadDir("../../../")
 		if err != nil {
 			log.Fatal(err)
 		}
