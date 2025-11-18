@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	s "strings"
 )
@@ -96,7 +97,9 @@ func handleRoutes(requestLine string, headers []string) string {
 			return OK + "Content-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(userAgent)) + "\r\n\r\n" + userAgent
 		}
 	case "files":
-		file, err := os.ReadFile(*directory + "/" + urlParts[1])
+		path := filepath.Join(*directory, "/", urlParts[1])
+		println(path)
+		file, err := os.ReadFile(path)
 		if err != nil {
 			fmt.Println("Error reading file: ", err.Error())
 			return NOT_FOUND + "\r\n"
