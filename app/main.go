@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -95,7 +96,16 @@ func handleRoutes(requestLine string, headers []string) string {
 			return OK + "Content-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(userAgent)) + "\r\n\r\n" + userAgent
 		}
 	case "files":
-		path := filepath.Join("/", urlParts[1])
+		files, err := os.ReadDir(".")
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println("Files in current directory:")
+		for _, file := range files {
+			fmt.Println(file.Name())
+		}
+		path := filepath.Join("./", urlParts[1])
 		file, err := os.ReadFile(path)
 		if err != nil {
 			fmt.Println("Error reading file: ", err.Error())
