@@ -11,10 +11,7 @@ import (
 	s "strings"
 )
 
-// Ensures gofmt doesn't remove the "net" and "os" imports above (feel free to remove this!)
-// var _ = net.Listen
-// var _ = os.Exit
-var directory = flag.String("directory", "", "Directory to serve")
+var directory = flag.String("directory", "", "Directory to serve files")
 
 func main() {
 
@@ -98,6 +95,7 @@ func handleRoutes(requestLine string, headers []string) string {
 		}
 	case "files":
 		path := filepath.Join(*directory, "/", urlParts[1])
+		println(*directory)
 		println(path)
 		file, err := os.ReadFile(path)
 		if err != nil {
