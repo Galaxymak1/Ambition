@@ -60,13 +60,13 @@ func handleConnection(conn net.Conn) {
 	}
 }
 func handleRequest(req string) string {
-	requestLine, headers, _ := parseRequest(req)
-	response := handleRoutes(requestLine, headers)
+	requestLine, headers, body := parseRequest(req)
+	response := handleRoutes(requestLine, headers, body)
 	return response
 }
 
-func handleRoutes(requestLine string, headers []string) string {
-	_, urlParts, _, err := parseRequestLine(requestLine)
+func handleRoutes(requestLine string, headers []string, body string) string {
+	method, urlParts, _, err := parseRequestLine(requestLine)
 	if err != nil {
 		fmt.Println("Error parsing request line: ", err.Error())
 		return BAD_REQUEST + "\r\n"
@@ -98,15 +98,34 @@ func handleRoutes(requestLine string, headers []string) string {
 			return OK + "Content-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(userAgent)) + "\r\n\r\n" + userAgent
 		}
 	case "files":
-		path := filepath.Join(fileDir, "/", urlParts[1])
-		println(fileDir)
-		println(path)
-		file, err := os.ReadFile(path)
-		if err != nil {
-			fmt.Println("Error reading file: ", err.Error())
-			return NOT_FOUND + "\r\n"
+		if lenUrl != 2 {
+			return BAD_REQUEST + "\r\n"
 		}
-		return OK + "Content-Type: application/octet-stream\r\nContent-Length: " + strconv.Itoa(len(file)) + "\r\n\r\n" + string(file)
+		switch method {
+		case "GET":
+			filename := urlParts[1]
+			path := filepath.Join(fileDir, "/", filename)
+			file, err := os.ReadFile(path)
+			if err != nil {
+				fmt.Println("Error reading file: ", err.Error())
+				return NOT_FOUND + "\r\n"
+			}
+			return OK + "Content-Type: application/octet-stream\r\nContent-Length: " + strconv.Itoa(len(file)) + "\r\n\r\n" + string(file)
+		case "POST":
+			filename := urlParts[1]
+			file, err := os.Create(filepath.Join(fileDir, "/", filename))
+			if err != nil {
+				fmt.Println("Error creating file: ", err.Error())
+				return NOT_FOUND + "\r\n"
+			}
+			l, err := file.WriteString(body)
+			if err != nil {
+				fmt.Println("Error writing to file: ", err.Error())
+				return NOT_FOUND + "\r\n"
+			}
+			fmt.Println(l, "bytes written successfully")
+			return CREATED + "\r\n"
+		}
 
 	default:
 		return NOT_FOUND + "\r\n"
