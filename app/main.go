@@ -149,7 +149,7 @@ func parseRequest(req string) (string, []string, string) {
 	if len(body) > 0 {
 		fmt.Printf("BODY  LINE : %#v \n", body)
 	}
-	return requestLine, headers, body
+	return requestLine, headers, s.TrimPrefix(body, "\n")
 }
 
 func parseRequestLine(requestLine string) (string, []string, string, error) {
