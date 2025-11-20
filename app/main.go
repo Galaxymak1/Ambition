@@ -77,16 +77,25 @@ func handleRoutes(requestLine string, headers []string, body string) string {
 		return OK + "\r\n"
 	}
 	baseRoute := urlParts[0]
-
 	switch baseRoute {
 	case "echo":
-		{
-			if len(urlParts) > 1 {
-				return OK + "Content-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(urlParts[1])) + "\r\n\r\n" + urlParts[1]
-			} else {
-				return BAD_REQUEST + "\r\n"
+		var acceptEncoding string
+		for _, header := range headers {
+			if s.Contains(header, "Accept-Encoding") {
+				acceptEncoding = s.TrimSpace(s.Split(header, ": ")[1])
 			}
 		}
+
+		if lenUrl > 1 {
+			if acceptEncoding == "gzip" {
+				return OK + "Content-Type: text/plain\r\nContent-Encoding: gzip\r\nContent-Length: " + strconv.Itoa(len(urlParts[1])) + "\r\n\r\n" + urlParts[1]
+			} else {
+				return OK + "Content-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(urlParts[1])) + "\r\n\r\n" + urlParts[1]
+			}
+		} else {
+			return BAD_REQUEST + "\r\n"
+		}
+
 	case "user-agent":
 		var userAgent string
 		for _, header := range headers {
@@ -157,11 +166,11 @@ func parseRequestLine(requestLine string) (string, []string, string, error) {
 	if len(parts) != 3 {
 		return "", []string{""}, "", errors.New("invalid request line")
 	}
-	method, urlParts, protocol := parts[0], delete_empty(s.Split(parts[1], "/")), parts[2]
+	method, urlParts, protocol := parts[0], deleteEmpty(s.Split(parts[1], "/")), parts[2]
 	return method, urlParts, protocol, nil
 }
 
-func delete_empty(s []string) []string {
+func deleteEmpty(s []string) []string {
 	var r []string
 	for _, str := range s {
 		if str != "" {
