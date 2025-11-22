@@ -73,17 +73,21 @@ func handleRequest(req string) (string, bool) {
 		}
 	}
 
-	response := handleRoutes(requestLine, headers, body)
+	response := handleRoutes(requestLine, headers, body, closeConnection)
 	return response, closeConnection
 }
 
-func handleRoutes(requestLine string, headers []string, body string) string {
+func handleRoutes(requestLine string, headers []string, body string, closeConnection bool) string {
 	method, urlParts, _, err := parseRequestLine(requestLine)
 	if err != nil {
 		fmt.Println("Error parsing request line: ", err.Error())
 		return BAD_REQUEST + "\r\n"
 	}
 	res := Response{"", []string{}, ""}
+	if closeConnection {
+		res.addHeader("Connection: close")
+	}
+
 	lenUrl := len(urlParts)
 	if lenUrl == 0 {
 		res.addStatus(OK)
