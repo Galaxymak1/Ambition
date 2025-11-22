@@ -39,7 +39,7 @@ func setupFlags() {
 	flag.Parse()
 }
 func handleConnection(conn net.Conn) {
-	//defer conn.Close()
+	defer conn.Close()
 
 	fmt.Println("Accepting connection from ", conn.RemoteAddr(), "\n")
 	buffer := make([]byte, 1024)
