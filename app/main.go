@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"errors"
 	"flag"
 	"fmt"
@@ -86,13 +88,22 @@ func handleRoutes(requestLine string, headers []string, body string) string {
 			}
 		}
 		if lenUrl > 1 {
-			res.addStatus(OK)
-			res.addBody("text/plain", urlParts[1])
 			for _, encoding := range deleteEmpty(s.Split(acceptEncoding, ", ")) {
 				if encoding == "gzip" {
+					var b bytes.Buffer
+					w := gzip.NewWriter(&b)
+					_, err := w.Write([]byte(urlParts[1]))
+					if err != nil {
+						res.addStatus(BAD_REQUEST)
+						return res.constructResponse()
+					}
 					res.addHeader("Content-Encoding: gzip")
+					res.addBody("text/plain", b.String())
+				} else {
+					res.addBody("text/plain", urlParts[1])
 				}
 			}
+			res.addStatus(OK)
 			return res.constructResponse()
 		} else {
 			return BAD_REQUEST + "\r\n"
