@@ -24,7 +24,6 @@ func main() {
 	fmt.Println("Listening on port 4221")
 	defer l.Close()
 	for {
-
 		conn, err := l.Accept()
 		if err != nil {
 			fmt.Println("Error accepting connection: ", err.Error())
@@ -40,7 +39,7 @@ func setupFlags() {
 	flag.Parse()
 }
 func handleConnection(conn net.Conn) {
-	defer conn.Close()
+	//defer conn.Close()
 
 	fmt.Println("Accepting connection from ", conn.RemoteAddr(), "\n")
 	buffer := make([]byte, 1024)
