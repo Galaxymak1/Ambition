@@ -39,32 +39,36 @@ func setupFlags() {
 	flag.Parse()
 }
 func handleConnection(conn net.Conn) {
+	defer conn.Close()
 	fmt.Println("Accepting connection from ", conn.RemoteAddr(), "\n")
-	buffer := make([]byte, 1024)
-	c, err := conn.Read(buffer)
-	if err != nil {
-		fmt.Println("Error reading from connection: ", err.Error())
-		return
+	for {
+		buffer := make([]byte, 1024)
+		c, err := conn.Read(buffer)
+		if err != nil {
+			fmt.Println("Error reading from connection: ", err.Error())
+			return
+		}
+		request := string(buffer[:c])
+		response, closeConnection := handleRequest(request)
+
+		data := []byte(response)
+		_, err = conn.Write(data)
+		if err != nil {
+			fmt.Println("Error writing ", err.Error())
+			os.Exit(1)
+		}
+		if closeConnection {
+			break
+		}
 	}
 
-	request := string(buffer[:c])
-	response, closeConnection := handleRequest(request)
-
-	data := []byte(response)
-	_, err = conn.Write(data)
-	if err != nil {
-		fmt.Println("Error writing ", err.Error())
-		os.Exit(1)
-	}
-	if closeConnection {
-		conn.Close()
-	}
 }
 func handleRequest(req string) (string, bool) {
 	requestLine, headers, body := parseRequest(req)
 	closeConnection := false
 	for _, header := range headers {
-		if header == "Connection: close" {
+		h := s.ToLower(s.TrimSpace(header))
+		if s.HasPrefix(h, "connection:") && s.Contains(h, "close") {
 			closeConnection = true
 		}
 	}
