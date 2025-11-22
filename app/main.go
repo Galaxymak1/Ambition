@@ -91,10 +91,16 @@ func handleRoutes(requestLine string, headers []string, body string) string {
 			for _, encoding := range deleteEmpty(s.Split(acceptEncoding, ", ")) {
 				if encoding == "gzip" {
 					var b bytes.Buffer
-					w := gzip.NewWriter(&b)
-					_, err := w.Write([]byte(urlParts[1]))
+					gz := gzip.NewWriter(&b)
+					_, err := gz.Write([]byte(urlParts[1]))
 					if err != nil {
 						res.addStatus(BAD_REQUEST)
+						res.addBody("text/plain", "Impossible to compress the body")
+						return res.constructResponse()
+					}
+					if err := gz.Close(); err != nil {
+						res.addStatus(BAD_REQUEST)
+						res.addBody("text/plain", "Impossible to compress the body")
 						return res.constructResponse()
 					}
 					res.addHeader("Content-Encoding: gzip")
