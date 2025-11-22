@@ -170,7 +170,6 @@ func handleRoutes(requestLine string, headers []string, body string) string {
 }
 
 func parseRequest(req string) (string, []string, string) {
-	//fmt.Println("Received request :", req)
 	reqParts := s.Split(req, "\n\r")
 	head := s.Split(reqParts[0], "\n")
 	var body string

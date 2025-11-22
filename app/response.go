@@ -13,6 +13,12 @@ func (res *Response) addStatus(statusLine string) {
 }
 
 func (res *Response) addHeader(header string) {
+	for i, h := range res.headers {
+		if h == header {
+			res.headers[i] = header
+			return
+		}
+	}
 	res.headers = append(res.headers, header)
 }
 func (res *Response) addBody(contentType string, body string) {
