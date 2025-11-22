@@ -7,7 +7,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"strconv"
 	s "strings"
 )
 
@@ -71,10 +70,11 @@ func handleRoutes(requestLine string, headers []string, body string) string {
 		fmt.Println("Error parsing request line: ", err.Error())
 		return BAD_REQUEST + "\r\n"
 	}
-
+	res := Response{"", []string{}, ""}
 	lenUrl := len(urlParts)
 	if lenUrl == 0 {
-		return OK + "\r\n"
+		res.addStatus(OK)
+		return res.constructResponse()
 	}
 	baseRoute := urlParts[0]
 	switch baseRoute {
@@ -85,13 +85,15 @@ func handleRoutes(requestLine string, headers []string, body string) string {
 				acceptEncoding = s.TrimSpace(s.Split(header, ": ")[1])
 			}
 		}
-
 		if lenUrl > 1 {
-			if acceptEncoding == "gzip" {
-				return OK + "Content-Type: text/plain\r\nContent-Encoding: gzip\r\nContent-Length: " + strconv.Itoa(len(urlParts[1])) + "\r\n\r\n" + urlParts[1]
-			} else {
-				return OK + "Content-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(urlParts[1])) + "\r\n\r\n" + urlParts[1]
+			res.addStatus(OK)
+			res.addBody("text/plain", urlParts[1])
+			for _, encoding := range deleteEmpty(s.Split(acceptEncoding, ", ")) {
+				if encoding == "gzip" {
+					res.addHeader("Content-Encoding: gzip")
+				}
 			}
+			return res.constructResponse()
 		} else {
 			return BAD_REQUEST + "\r\n"
 		}
@@ -104,11 +106,14 @@ func handleRoutes(requestLine string, headers []string, body string) string {
 			}
 		}
 		if userAgent != "" {
-			return OK + "Content-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(userAgent)) + "\r\n\r\n" + userAgent
+			res.addStatus(OK)
+			res.addBody("text/plain", userAgent)
+			return res.constructResponse()
 		}
 	case "files":
 		if lenUrl != 2 {
-			return BAD_REQUEST + "\r\n"
+			res.addStatus(BAD_REQUEST)
+			return res.constructResponse()
 		}
 		switch method {
 		case "GET":
@@ -117,30 +122,33 @@ func handleRoutes(requestLine string, headers []string, body string) string {
 			file, err := os.ReadFile(path)
 			if err != nil {
 				fmt.Println("Error reading file: ", err.Error())
-				return NOT_FOUND + "\r\n"
+				res.addStatus(NOT_FOUND)
+				return res.constructResponse()
 			}
-			return OK + "Content-Type: application/octet-stream\r\nContent-Length: " + strconv.Itoa(len(file)) + "\r\n\r\n" + string(file)
+			res.addStatus(OK)
+			res.addBody("application/octet-stream", string(file))
+			return res.constructResponse()
 		case "POST":
 			filename := urlParts[1]
 			file, err := os.Create(filepath.Join(fileDir, "/", filename))
 			if err != nil {
 				fmt.Println("Error creating file: ", err.Error())
-				return NOT_FOUND + "\r\n"
+				res.addStatus(NOT_FOUND)
+				return res.constructResponse()
 			}
 			l, err := file.WriteString(body)
 			if err != nil {
 				fmt.Println("Error writing to file: ", err.Error())
-				return NOT_FOUND + "\r\n"
+				res.addStatus(NOT_FOUND)
+				return res.constructResponse()
 			}
 			fmt.Println(l, "bytes written successfully")
-			return CREATED + "\r\n"
+			res.addStatus(CREATED)
+			return res.constructResponse()
 		}
-
-	default:
-		return NOT_FOUND + "\r\n"
-
 	}
-	return NOT_FOUND + "\r\n"
+	res.addStatus(NOT_FOUND)
+	return res.constructResponse()
 }
 
 func parseRequest(req string) (string, []string, string) {
