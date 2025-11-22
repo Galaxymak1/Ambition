@@ -39,8 +39,6 @@ func setupFlags() {
 	flag.Parse()
 }
 func handleConnection(conn net.Conn) {
-	defer conn.Close()
-
 	fmt.Println("Accepting connection from ", conn.RemoteAddr(), "\n")
 	buffer := make([]byte, 1024)
 	c, err := conn.Read(buffer)
@@ -50,7 +48,7 @@ func handleConnection(conn net.Conn) {
 	}
 
 	request := string(buffer[:c])
-	response := handleRequest(request)
+	response, closeConnection := handleRequest(request)
 
 	data := []byte(response)
 	_, err = conn.Write(data)
@@ -58,11 +56,20 @@ func handleConnection(conn net.Conn) {
 		fmt.Println("Error writing ", err.Error())
 		os.Exit(1)
 	}
+	if closeConnection {
+		conn.Close()
+	}
 }
-func handleRequest(req string) string {
+func handleRequest(req string) (string, bool) {
 	requestLine, headers, body := parseRequest(req)
+	closeConnection := false
+	for _, header := range headers {
+		if header == "Connection: close" {
+			closeConnection = true
+		}
+	}
 	response := handleRoutes(requestLine, headers, body)
-	return response
+	return response, closeConnection
 }
 
 func handleRoutes(requestLine string, headers []string, body string) string {
