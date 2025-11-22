@@ -103,13 +103,14 @@ func handleRoutes(requestLine string, headers []string, body string) string {
 						res.addBody("text/plain", "Impossible to compress the body")
 						return res.constructResponse()
 					}
+					res.addStatus(OK)
 					res.addHeader("Content-Encoding: gzip")
 					res.addBody("text/plain", b.String())
-				} else {
-					res.addBody("text/plain", urlParts[1])
+					return res.constructResponse()
 				}
 			}
 			res.addStatus(OK)
+			res.addBody("text/plain", urlParts[1])
 			return res.constructResponse()
 		} else {
 			return BAD_REQUEST + "\r\n"
