@@ -72,6 +72,7 @@ func handleRequest(req string) (string, bool) {
 			closeConnection = true
 		}
 	}
+
 	response := handleRoutes(requestLine, headers, body)
 	return response, closeConnection
 }
