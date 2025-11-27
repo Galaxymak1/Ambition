@@ -30,7 +30,6 @@ func main() {
 			os.Exit(1)
 		}
 		go handleConnection(conn)
-		//conn.Close()
 	}
 }
 
@@ -46,10 +45,14 @@ func handleConnection(conn net.Conn) {
 		c, err := conn.Read(buffer)
 		if err != nil {
 			fmt.Println("Error reading from connection: ", err.Error())
-			return
+			break
 		}
 		request := string(buffer[:c])
-		response, closeConnection := handleRequest(request)
+		req, err := parseRequest(request)
+		if err != nil {
+			break
+		}
+		response, closeConnection := handleRequest(req)
 
 		data := []byte(response)
 		_, err = conn.Write(data)
@@ -63,41 +66,35 @@ func handleConnection(conn net.Conn) {
 	}
 
 }
-func handleRequest(req string) (string, bool) {
-	requestLine, headers, body := parseRequest(req)
+func handleRequest(req Request) (string, bool) {
 	closeConnection := false
-	for _, header := range headers {
+	for _, header := range req.headers {
 		h := s.ToLower(s.TrimSpace(header))
 		if s.HasPrefix(h, "connection:") && s.Contains(h, "close") {
 			closeConnection = true
 		}
 	}
 
-	response := handleRoutes(requestLine, headers, body, closeConnection)
+	response := handleRoutes(req, closeConnection)
 	return response, closeConnection
 }
 
-func handleRoutes(requestLine string, headers []string, body string, closeConnection bool) string {
-	method, urlParts, _, err := parseRequestLine(requestLine)
-	if err != nil {
-		fmt.Println("Error parsing request line: ", err.Error())
-		return BAD_REQUEST + "\r\n"
-	}
+func handleRoutes(req Request, closeConnection bool) string {
 	res := Response{"", []string{}, ""}
 	if closeConnection {
 		res.addHeader("Connection: close")
 	}
 
-	lenUrl := len(urlParts)
+	lenUrl := len(req.url)
 	if lenUrl == 0 {
 		res.addStatus(OK)
 		return res.constructResponse()
 	}
-	baseRoute := urlParts[0]
+	baseRoute := req.url[0]
 	switch baseRoute {
 	case "echo":
 		var acceptEncoding string
-		for _, header := range headers {
+		for _, header := range res.headers {
 			if s.Contains(header, "Accept-Encoding") {
 				acceptEncoding = s.TrimSpace(s.Split(header, ": ")[1])
 			}
@@ -107,7 +104,7 @@ func handleRoutes(requestLine string, headers []string, body string, closeConnec
 				if encoding == "gzip" {
 					var b bytes.Buffer
 					gz := gzip.NewWriter(&b)
-					_, err := gz.Write([]byte(urlParts[1]))
+					_, err := gz.Write([]byte(req.url[1]))
 					if err != nil {
 						res.addStatus(BAD_REQUEST)
 						res.addBody("text/plain", "Impossible to compress the body")
@@ -125,7 +122,7 @@ func handleRoutes(requestLine string, headers []string, body string, closeConnec
 				}
 			}
 			res.addStatus(OK)
-			res.addBody("text/plain", urlParts[1])
+			res.addBody("text/plain", req.url[1])
 			return res.constructResponse()
 		} else {
 			return BAD_REQUEST + "\r\n"
@@ -133,7 +130,7 @@ func handleRoutes(requestLine string, headers []string, body string, closeConnec
 
 	case "user-agent":
 		var userAgent string
-		for _, header := range headers {
+		for _, header := range req.headers {
 			if s.Contains(header, "User-Agent") {
 				userAgent = s.TrimSpace(s.Split(header, ": ")[1])
 			}
@@ -148,9 +145,9 @@ func handleRoutes(requestLine string, headers []string, body string, closeConnec
 			res.addStatus(BAD_REQUEST)
 			return res.constructResponse()
 		}
-		switch method {
+		switch req.method {
 		case "GET":
-			filename := urlParts[1]
+			filename := req.url[1]
 			path := filepath.Join(fileDir, "/", filename)
 			file, err := os.ReadFile(path)
 			if err != nil {
@@ -162,14 +159,14 @@ func handleRoutes(requestLine string, headers []string, body string, closeConnec
 			res.addBody("application/octet-stream", string(file))
 			return res.constructResponse()
 		case "POST":
-			filename := urlParts[1]
+			filename := req.url[1]
 			file, err := os.Create(filepath.Join(fileDir, "/", filename))
 			if err != nil {
 				fmt.Println("Error creating file: ", err.Error())
 				res.addStatus(NOT_FOUND)
 				return res.constructResponse()
 			}
-			l, err := file.WriteString(body)
+			l, err := file.WriteString(req.body)
 			if err != nil {
 				fmt.Println("Error writing to file: ", err.Error())
 				res.addStatus(NOT_FOUND)
@@ -184,7 +181,7 @@ func handleRoutes(requestLine string, headers []string, body string, closeConnec
 	return res.constructResponse()
 }
 
-func parseRequest(req string) (string, []string, string) {
+func parseRequest(req string) (Request, error) {
 	reqParts := s.Split(req, "\n\r")
 	head := s.Split(reqParts[0], "\n")
 	var body string
@@ -198,7 +195,12 @@ func parseRequest(req string) (string, []string, string) {
 	if len(body) > 0 {
 		fmt.Printf("BODY  LINE : %#v \n", body)
 	}
-	return requestLine, headers, s.TrimPrefix(body, "\n")
+	method, urlParts, _, err := parseRequestLine(requestLine)
+	if err != nil {
+		return Request{}, err
+	}
+	request := Request{method, urlParts, headers, s.TrimPrefix(body, "\n")}
+	return request, nil
 }
 
 func parseRequestLine(requestLine string) (string, []string, string, error) {

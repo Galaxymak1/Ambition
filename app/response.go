@@ -8,6 +8,13 @@ type Response struct {
 	body       string
 }
 
+type Request struct {
+	method  string
+	url     []string
+	headers []string
+	body    string
+}
+
 func (res *Response) addStatus(statusLine string) {
 	res.statusLine = statusLine
 }
