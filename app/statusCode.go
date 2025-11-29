@@ -1,14 +1,26 @@
 package main
 
 // 200 Codes
-const OK = "HTTP/1.1 200 OK\r\n"
-const CREATED = "HTTP/1.1 201 Created\r\n"
+const OK = 200
+const CREATED = 201
 
 // Error Codes
-const BAD_REQUEST = "HTTP/1.1 400 Bad Request\r\n"
-const UNAUTHORIZED = "HTTP/1.1 401 Unauthorized\r\n"
-const FORBIDDEN = "HTTP/1.1 403 Forbidden\r\n"
-const NOT_FOUND = "HTTP/1.1 404 Not Found\r\n"
-const METHOD_NOT_ALLOWED = "HTTP/1.1 405 Method Not Allowed\r\n"
-const UNPROCESSABLE_CONTENT = "HTTP/1.1 407 Unprocessable Content\r\n"
-const INTERNAL_ERROR = "HTTP/1.1 500 Internal Server Error\r\n"
+const BAD_REQUEST = 400
+const UNAUTHORIZED = 401
+const FORBIDDEN = 403
+const NOT_FOUND = 404
+const METHOD_NOT_ALLOWED = 405
+const UNPROCESSABLE_CONTENT = 407
+const INTERNAL_ERROR = 500
+
+var statusMap = map[int]string{
+	200: "OK",
+	201: "CREATED",
+	400: "BAD_REQUEST",
+	401: "UNAUTHORIZED",
+	403: "FORBIDDEN",
+	404: "NOT_FOUND",
+	405: "METHOD_NOT_ALLOWED",
+	407: "UNPROCESSABLE_CONTENT",
+	500: "INTERNAL_ERROR",
+}
